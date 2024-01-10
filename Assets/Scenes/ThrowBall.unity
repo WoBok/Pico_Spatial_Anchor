@@ -691,8 +691,6 @@ MonoBehaviour:
     type: 3}
   ballPrefab: {fileID: 442404630301418637, guid: 3082a5909aa8fe64a9621d27dcfcb431,
     type: 3}
-  tablePrefab: {fileID: 8714165542457079825, guid: 552a5e5d8df98094c9497552d4c1f22d,
-    type: 3}
 --- !u!4 &1115147978
 Transform:
   m_ObjectHideFlags: 0

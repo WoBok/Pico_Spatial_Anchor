@@ -7,16 +7,15 @@ public class ThrowBall : MonoBehaviour
 {
     public GameObject anchorPrefab;
     public GameObject ballPrefab;
-    public GameObject tablePrefab;
 
     InputActions m_InputActions;
 
-    bool m_IsLoadedAnchor;
     float m_ForceFactor = 0.6f;
 
-    List<GameObject> m_Colliders = new List<GameObject>();
     GameObject m_CurrentBall;
+    List<GameObject> m_Colliders = new List<GameObject>();
     List<GameObject> m_Balls = new List<GameObject>();
+    List<ulong> m_Handles = new List<ulong>();
 
     Transform m_RightHand;
     Transform RightHand
@@ -32,11 +31,12 @@ public class ThrowBall : MonoBehaviour
     }
     void Awake()
     {
+        VRDebug.IsDebug = false;
+
         PXR_MixedReality.EnableVideoSeeThrough(true);
+
         BindInput();
         BindEvent();
-        PXR_ProjectSetting projectConfig = PXR_ProjectSetting.GetProjectConfig();
-        VRDebug.Log($"projectConfig.spatialAnchor: {projectConfig.spatialAnchor}");
     }
     void BindInput()
     {
@@ -54,7 +54,7 @@ public class ThrowBall : MonoBehaviour
         PXR_Manager.SpatialTrackingStateUpdate += SpatialTrackingStateUpdate;
         PXR_Manager.AnchorEntityLoaded += AnchorEntityLoaded;
     }
-    void SpatialTrackingStateUpdate(PxrEventSpatialTrackingStateUpdate trackingInfo)//Q: Is it always update? A: 
+    void SpatialTrackingStateUpdate(PxrEventSpatialTrackingStateUpdate trackingInfo)//Q: Is it always update? A: No
     {
         VRDebug.Log("SpatialTrackingStateUpdate state: " + trackingInfo.state);
         if (trackingInfo.state == PxrSpatialTrackingState.Invalid || trackingInfo.state == PxrSpatialTrackingState.Limited)
@@ -63,11 +63,7 @@ public class ThrowBall : MonoBehaviour
         }
         if (trackingInfo.state == PxrSpatialTrackingState.Valid)
         {
-            if (!m_IsLoadedAnchor)
-            {
-                m_IsLoadedAnchor = true;
-                LoadAnchor();
-            }
+            VRDebug.Log("PxrSpatialTrackingState: Valid");
         }
     }
     void LoadAnchor()
@@ -88,6 +84,10 @@ public class ThrowBall : MonoBehaviour
         PXR_MixedReality.GetAnchorEntityLoadResults(loadingInfo.taskId, loadingInfo.count, out var loadedAnchors);
         foreach (var handle in loadedAnchors.Keys)
         {
+            if (m_Handles.Contains(handle))
+                continue;
+            m_Handles.Add(handle);
+
             PXR_MixedReality.GetAnchorPose(handle, out var orientation, out var position);
             PXR_MixedReality.GetAnchorSceneLabel(handle, out var lable);
             PXR_MixedReality.GetAnchorPlaneBoundaryInfo(handle, out var boundaryCenter, out var boundaryExtent);
@@ -119,26 +119,15 @@ public class ThrowBall : MonoBehaviour
                     collider_F_C.transform.localScale = new Vector3(boundaryExtent.x * 100, boundaryExtent.y * 100, 0.001f);
                     break;
                 case PxrSceneLabel.Table:
-                    var collider_T = Instantiate(tablePrefab);
+                    var collider_T = Instantiate(anchorPrefab);
                     collider_T.transform.SetParent(anchor.transform);
                     collider_T.transform.localPosition = Vector3.zero;
                     collider_T.transform.localRotation = Quaternion.identity;
-                    var material = collider_T.GetComponent<MeshRenderer>().material;
-                    var shaderName = material.shader.name;
-                    VRDebug.Log($"Shader Name: {shaderName}");
-
-                    var collider_T1 = Instantiate(anchorPrefab);
-                    collider_T1.transform.SetParent(anchor.transform);
-                    collider_T1.transform.localPosition = Vector3.zero;
-                    collider_T1.transform.localRotation = Quaternion.identity;
-                    m_Colliders.Add(collider_T1);
+                    m_Colliders.Add(collider_T);
 
                     PXR_MixedReality.GetAnchorVolumeInfo(handle, out var volumeCenter, out var volumeExtent);
                     collider_T.transform.localPosition += volumeCenter;
                     collider_T.transform.localScale = volumeExtent;
-
-                    collider_T1.transform.localPosition += volumeCenter;
-                    collider_T1.transform.localScale = volumeExtent;
 
                     VRDebug.Log($"{lable}'s volume center: {volumeCenter}, volumeExtent: {volumeExtent}");
                     break;
@@ -198,17 +187,6 @@ public class ThrowBall : MonoBehaviour
         if (!pause)
         {
             PXR_MixedReality.EnableVideoSeeThrough(true);
-        }
-    }
-    void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.A))
-        {
-            RightHandTriggerPerformed(new InputAction.CallbackContext());
-        }
-        if (Input.GetKeyDown(KeyCode.S))
-        {
-            RightHandTriggerCanceled(new InputAction.CallbackContext());
         }
     }
 }
