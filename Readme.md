@@ -52,6 +52,7 @@ public static event Action<PxrEventSpatialSceneCaptured> SpatialSceneCaptured;
 |Sofa|沙发|
 |Object|所有三维物体都为 Object|
 
+---
 **Unity Version:** 2021.3.16f1c1  
 **Render Pipeline:** URP  
 **Pico SDK Version:** 2.4.3
